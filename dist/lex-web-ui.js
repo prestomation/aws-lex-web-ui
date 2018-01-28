@@ -5783,7 +5783,11 @@ var recorder = void 0;
     });
   },
   synthSpeech: function synthSpeech(context, text) {
-    return context.dispatch('sendMessageToParentWindow', { event: 'synthSpeech', text: text });
+    context.commit('setIsBotSpeaking', true);
+    return context.dispatch('sendMessageToParentWindow', { event: 'synthSpeech', text: text }).then(function () {
+      context.commit('setIsBotSpeaking', false);
+      return __WEBPACK_IMPORTED_MODULE_1_babel_runtime_core_js_promise___default.a.resolve();
+    });
   },
   pollySynthesizeSpeech: function pollySynthesizeSpeech(context, text) {
     return context.dispatch('synthSpeech', text);
@@ -5881,14 +5885,15 @@ var recorder = void 0;
   processLexContentResponse: function processLexContentResponse(context, lexData) {
     var audioStream = lexData.audioStream,
         contentType = lexData.contentType,
-        message = lexData.message;
+        dialogState = lexData.dialogState;
 
 
     return __WEBPACK_IMPORTED_MODULE_1_babel_runtime_core_js_promise___default.a.resolve().then(function () {
-      // if (!audioStream || !audioStream.length) {
-      context.dispatch('synthSpeech', message);
-      // return context.dispatch('pollyGetBlob', text);
-      // }
+      if (!audioStream || !audioStream.length) {
+        var text = dialogState === 'ReadyForFulfillment' ? 'All done' : 'There was an error';
+        return context.dispatch('synthSpeech', text);
+        // return context.dispatch('pollyGetBlob', text);
+      }
 
       return __WEBPACK_IMPORTED_MODULE_1_babel_runtime_core_js_promise___default.a.resolve(new Blob([audioStream], { type: contentType }));
     });
@@ -7035,7 +7040,8 @@ var initRecorderHandlers = function initRecorderHandlers(context, recorder) {
         dialogState: context.state.lex.dialogState,
         responseCard: context.state.lex.responseCard
       });
-      return __WEBPACK_IMPORTED_MODULE_1_babel_runtime_core_js_promise___default.a.resolve(); // context.dispatch('playAudio', lexAudioUrl, {}, offset);
+      return context.dispatch('synthSpeech', context.state.lex.message);
+      // return context.dispatch('playAudio', lexAudioUrl, {}, offset);
     }).then(function () {
       if (['Fulfilled', 'ReadyForFulfillment', 'Failed'].indexOf(context.state.lex.dialogState) >= 0) {
         return context.dispatch('stopConversation').then(function () {

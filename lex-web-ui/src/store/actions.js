@@ -395,10 +395,14 @@ export default {
       });
   },
   synthSpeech(context, text) {
+    context.commit('setIsBotSpeaking', true);
     return context.dispatch(
       'sendMessageToParentWindow',
       { event: 'synthSpeech', text },
-    );
+    ).then(() => {
+      context.commit('setIsBotSpeaking', false);
+      return Promise.resolve();
+    });
   },
   pollySynthesizeSpeech(context, text) {
     return context.dispatch('synthSpeech', text);
@@ -511,14 +515,17 @@ export default {
       });
   },
   processLexContentResponse(context, lexData) {
-    const { audioStream, contentType, message } = lexData;
+    const { audioStream, contentType, dialogState } = lexData;
 
     return Promise.resolve()
       .then(() => {
-        // if (!audioStream || !audioStream.length) {
-        context.dispatch('synthSpeech', message);
-        // return context.dispatch('pollyGetBlob', text);
-        // }
+        if (!audioStream || !audioStream.length) {
+          const text = (dialogState === 'ReadyForFulfillment') ?
+            'All done' :
+            'There was an error';
+          return context.dispatch('synthSpeech', text);
+          // return context.dispatch('pollyGetBlob', text);
+        }
 
         return Promise.resolve(new Blob([audioStream], { type: contentType }));
       });

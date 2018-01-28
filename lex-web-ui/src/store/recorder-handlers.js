@@ -117,7 +117,8 @@ const initRecorderHandlers = (context, recorder) => {
           dialogState: context.state.lex.dialogState,
           responseCard: context.state.lex.responseCard,
         });
-        return Promise.resolve(); // context.dispatch('playAudio', lexAudioUrl, {}, offset);
+        return context.dispatch('synthSpeech', context.state.lex.message);
+        // return context.dispatch('playAudio', lexAudioUrl, {}, offset);
       })
       .then(() => {
         if (
