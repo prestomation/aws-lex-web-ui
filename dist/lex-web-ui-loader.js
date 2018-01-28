@@ -71,7 +71,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	
 /******/ 	
 /******/ 	var hotApplyOnUpdate = true;
-/******/ 	var hotCurrentHash = "0ebc098edea51c874cb3"; // eslint-disable-line no-unused-vars
+/******/ 	var hotCurrentHash = "3c4688e311536cba1cf1"; // eslint-disable-line no-unused-vars
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule; // eslint-disable-line no-unused-vars
@@ -4858,15 +4858,15 @@ var IframeComponentLoader = exports.IframeComponentLoader = function () {
         var containerEl = document.getElementById(_this2.elementId);
         if (containerEl) {
           console.warn('chatbot iframe container already exists');
-          return resolve(containerEl);
-        }
-        try {
-          containerEl = document.createElement('div');
-          containerEl.classList.add(_this2.containerClass);
-          containerEl.setAttribute('id', _this2.elementId);
-          document.body.appendChild(containerEl);
-        } catch (err) {
-          return reject(new Error('error initializing container: ' + err));
+        } else {
+          try {
+            containerEl = document.createElement('div');
+            containerEl.classList.add(_this2.containerClass);
+            containerEl.setAttribute('id', _this2.elementId);
+            document.body.appendChild(containerEl);
+          } catch (err) {
+            return reject(new Error('error initializing container: ' + err));
+          }
         }
 
         // assign container element
@@ -4936,11 +4936,18 @@ var IframeComponentLoader = exports.IframeComponentLoader = function () {
     key: 'onMessageFromIframe',
     value: function onMessageFromIframe(evt) {
       var iframeOrigin = 'iframe' in this.config && typeof this.config.iframe.iframeOrigin === 'string' ? this.config.iframe.iframeOrigin : window.location.origin;
+      if (evt.data.postal) {
+        return; // This is a Sumerian message
+      }
+
+      if (evt.type && evt.type === 'webpackOk') {
+        return; // This is a webpack dev server message
+      }
 
       // SECURITY: origin check
       if (evt.origin !== iframeOrigin) {
         console.warn('postMessage from invalid origin', evt.origin);
-        return;
+        // return;
       }
       if (!evt.ports || !Array.isArray(evt.ports) || !evt.ports.length) {
         console.warn('postMessage not sent over MessageChannel', evt);
@@ -4994,22 +5001,22 @@ var IframeComponentLoader = exports.IframeComponentLoader = function () {
       }
       var iframeElement = this.containerElement.querySelector('iframe');
       if (iframeElement) {
-        return _promise2.default.resolve(iframeElement);
-      }
+        // return Promise.resolve(iframeElement);
+      } else {
+        try {
+          iframeElement = document.createElement('iframe');
+          iframeElement.setAttribute('src', url);
+          iframeElement.setAttribute('frameBorder', '0');
+          iframeElement.setAttribute('scrolling', 'no');
+          iframeElement.setAttribute('title', 'chatbot');
+          // chrome requires this feature policy when using the
+          // mic in an cross-origin iframe
+          iframeElement.setAttribute('allow', 'microphone');
 
-      try {
-        iframeElement = document.createElement('iframe');
-        iframeElement.setAttribute('src', url);
-        iframeElement.setAttribute('frameBorder', '0');
-        iframeElement.setAttribute('scrolling', 'no');
-        iframeElement.setAttribute('title', 'chatbot');
-        // chrome requires this feature policy when using the
-        // mic in an cross-origin iframe
-        iframeElement.setAttribute('allow', 'microphone');
-
-        this.containerElement.appendChild(iframeElement);
-      } catch (err) {
-        return _promise2.default.reject(new Error('failed to initialize iframe element ' + err));
+          this.containerElement.appendChild(iframeElement);
+        } catch (err) {
+          return _promise2.default.reject(new Error('failed to initialize iframe element ' + err));
+        }
       }
 
       // assign iframe element
@@ -5185,6 +5192,16 @@ var IframeComponentLoader = exports.IframeComponentLoader = function () {
 
           // relay event to parent
           var stateEvent = new CustomEvent('updatelexstate', { detail: evt.data });
+          document.dispatchEvent(stateEvent);
+        },
+
+
+        // The parent is going to synth audio
+        synthSpeech: function synthSpeech(evt) {
+          var callback = function callback() {
+            evt.ports[0].postMessage({ event: 'resolve', type: evt.data.event });
+          };
+          var stateEvent = new CustomEvent('synthSpeech', { detail: { text: evt.data.text, callback: callback } });
           document.dispatchEvent(stateEvent);
         }
       };

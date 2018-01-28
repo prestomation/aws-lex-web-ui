@@ -394,10 +394,17 @@ export default {
         return Promise.resolve(blob);
       });
   },
+  synthSpeech(context, text) {
+    return context.dispatch(
+      'sendMessageToParentWindow',
+      { event: 'synthSpeech', text },
+    );
+  },
   pollySynthesizeSpeech(context, text) {
-    return context.dispatch('pollyGetBlob', text)
-      .then(blob => context.dispatch('getAudioUrl', blob))
-      .then(audioUrl => context.dispatch('playAudio', audioUrl));
+    return context.dispatch('synthSpeech', text);
+    // return context.dispatch('pollyGetBlob', text)
+    //   .then(blob => context.dispatch('getAudioUrl', blob))
+    //   .then(audioUrl => context.dispatch('playAudio', audioUrl, text));
   },
   interruptSpeechConversation(context) {
     if (!context.state.recState.isConversationGoing &&
@@ -504,16 +511,14 @@ export default {
       });
   },
   processLexContentResponse(context, lexData) {
-    const { audioStream, contentType, dialogState } = lexData;
+    const { audioStream, contentType, message } = lexData;
 
     return Promise.resolve()
       .then(() => {
-        if (!audioStream || !audioStream.length) {
-          const text = (dialogState === 'ReadyForFulfillment') ?
-            'All done' :
-            'There was an error';
-          return context.dispatch('pollyGetBlob', text);
-        }
+        // if (!audioStream || !audioStream.length) {
+        context.dispatch('synthSpeech', message);
+        // return context.dispatch('pollyGetBlob', text);
+        // }
 
         return Promise.resolve(new Blob([audioStream], { type: contentType }));
       });

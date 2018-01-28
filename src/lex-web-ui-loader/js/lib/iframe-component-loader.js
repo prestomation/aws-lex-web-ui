@@ -117,15 +117,15 @@ export class IframeComponentLoader {
       let containerEl = document.getElementById(this.elementId);
       if (containerEl) {
         console.warn('chatbot iframe container already exists');
-        return resolve(containerEl);
-      }
-      try {
-        containerEl = document.createElement('div');
-        containerEl.classList.add(this.containerClass);
-        containerEl.setAttribute('id', this.elementId);
-        document.body.appendChild(containerEl);
-      } catch (err) {
-        return reject(new Error(`error initializing container: ${err}`));
+      } else {
+        try {
+          containerEl = document.createElement('div');
+          containerEl.classList.add(this.containerClass);
+          containerEl.setAttribute('id', this.elementId);
+          document.body.appendChild(containerEl);
+        } catch (err) {
+          return reject(new Error(`error initializing container: ${err}`));
+        }
       }
 
       // assign container element
@@ -202,11 +202,18 @@ export class IframeComponentLoader {
       ) ?
         this.config.iframe.iframeOrigin :
         window.location.origin;
+    if (evt.data.postal) {
+      return; // This is a Sumerian message
+    }
+
+    if (evt.type && evt.type === 'webpackOk') {
+      return; // This is a webpack dev server message
+    }
 
     // SECURITY: origin check
     if (evt.origin !== iframeOrigin) {
       console.warn('postMessage from invalid origin', evt.origin);
-      return;
+      // return;
     }
     if (!evt.ports || !Array.isArray(evt.ports) || !evt.ports.length) {
       console.warn('postMessage not sent over MessageChannel', evt);
@@ -255,23 +262,23 @@ export class IframeComponentLoader {
     }
     let iframeElement = this.containerElement.querySelector('iframe');
     if (iframeElement) {
-      return Promise.resolve(iframeElement);
-    }
+      // return Promise.resolve(iframeElement);
+    } else {
+      try {
+        iframeElement = document.createElement('iframe');
+        iframeElement.setAttribute('src', url);
+        iframeElement.setAttribute('frameBorder', '0');
+        iframeElement.setAttribute('scrolling', 'no');
+        iframeElement.setAttribute('title', 'chatbot');
+        // chrome requires this feature policy when using the
+        // mic in an cross-origin iframe
+        iframeElement.setAttribute('allow', 'microphone');
 
-    try {
-      iframeElement = document.createElement('iframe');
-      iframeElement.setAttribute('src', url);
-      iframeElement.setAttribute('frameBorder', '0');
-      iframeElement.setAttribute('scrolling', 'no');
-      iframeElement.setAttribute('title', 'chatbot');
-      // chrome requires this feature policy when using the
-      // mic in an cross-origin iframe
-      iframeElement.setAttribute('allow', 'microphone');
-
-      this.containerElement.appendChild(iframeElement);
-    } catch (err) {
-      return Promise
-        .reject(new Error(`failed to initialize iframe element ${err}`));
+        this.containerElement.appendChild(iframeElement);
+      } catch (err) {
+        return Promise
+          .reject(new Error(`failed to initialize iframe element ${err}`));
+      }
     }
 
     // assign iframe element
@@ -445,6 +452,15 @@ export class IframeComponentLoader {
 
         // relay event to parent
         const stateEvent = new CustomEvent('updatelexstate', { detail: evt.data });
+        document.dispatchEvent(stateEvent);
+      },
+
+      // The parent is going to synth audio
+      synthSpeech(evt) {
+        const callback = () => {
+          evt.ports[0].postMessage({ event: 'resolve', type: evt.data.event });
+        };
+        const stateEvent = new CustomEvent('synthSpeech', { detail: { text: evt.data.text, callback } });
         document.dispatchEvent(stateEvent);
       },
     };

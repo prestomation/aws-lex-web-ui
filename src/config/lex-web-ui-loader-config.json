@@ -3,12 +3,12 @@
     "poolId": ""
   },
   "lex": {
-    "botName": "",
+    "botName": "WebUiOrderFlowers",
     "initialText": "You can ask me for help ordering flowers. Just type \"Buy flowers\" or click on the mic and say it.",
     "initialSpeechInstruction": "Say 'Buy Flowers' to get started."
   },
   "ui": {
-    "parentOrigin": "",
+    "parentOrigin": "https://us-west-2.sumerian.amazonaws.com",
     "toolbarTitle": "Order Flowers",
     "pushInitialTextOnRestart": false
   },
@@ -19,7 +19,7 @@
     "preset": "speech_recognition"
   },
   "iframe": {
-    "iframeOrigin": "",
+    "iframeOrigin": "https://localhost:8000",
     "iframeSrcPath": "/index.html#/?lexWebUiEmbed=true",
     "shouldLoadIframeMinimized": true
   }

@@ -51,6 +51,7 @@ module.exports = (env) => {
     },
     devtool: (isProd) ? 'source-map' : 'cheap-module-source-map',
     devServer: {
+      https: true,
       contentBase: [
         path.join(__dirname, 'dist'),
         path.join(__dirname, 'src/config'),

@@ -20,7 +20,10 @@ export default {
   version: (process.env.PACKAGE_VERSION) ?
     process.env.PACKAGE_VERSION : '0.0.0',
   lex: {
-    acceptFormat: 'audio/ogg',
+    acceptFormat: (
+      config.lex &&
+       config.lex.acceptFormat
+    ) ? `${config.lex.acceptFormat}` : 'audio/ogg',
     dialogState: '',
     isInterrupting: false,
     isProcessing: false,
